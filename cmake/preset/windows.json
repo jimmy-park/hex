@@ -1,0 +1,75 @@
+{
+    "version": 6,
+    "include": [
+        "base.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "windows",
+            "inherits": [
+                "base",
+                "host-windows",
+                "vs2022",
+                "target-windows-x64"
+            ]
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows",
+            "inherits": [
+                "host-windows",
+                "release"
+            ],
+            "configurePreset": "windows"
+        },
+        {
+            "name": "windows-clean",
+            "inherits": [
+                "host-windows",
+                "release",
+                "clean"
+            ],
+            "configurePreset": "windows"
+        },
+        {
+            "name": "windows-install",
+            "inherits": [
+                "host-windows",
+                "release",
+                "install"
+            ],
+            "configurePreset": "windows"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "windows",
+            "configurePreset": "windows",
+            "inherits": [
+                "host-windows",
+                "release",
+                "options"
+            ]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "windows",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows"
+                },
+                {
+                    "type": "build",
+                    "name": "windows"
+                },
+                {
+                    "type": "test",
+                    "name": "windows"
+                }
+            ]
+        }
+    ]
+}

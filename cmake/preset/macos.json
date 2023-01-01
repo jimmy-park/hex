@@ -1,0 +1,74 @@
+{
+    "version": 6,
+    "include": [
+        "base.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "macos",
+            "inherits": [
+                "base",
+                "host-macos",
+                "xcode"
+            ]
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "macos",
+            "inherits": [
+                "host-macos",
+                "release"
+            ],
+            "configurePreset": "macos"
+        },
+        {
+            "name": "macos-clean",
+            "inherits": [
+                "host-macos",
+                "release",
+                "clean"
+            ],
+            "configurePreset": "macos"
+        },
+        {
+            "name": "macos-install",
+            "inherits": [
+                "host-macos",
+                "release",
+                "install"
+            ],
+            "configurePreset": "macos"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "macos",
+            "configurePreset": "macos",
+            "inherits": [
+                "host-macos",
+                "release",
+                "options"
+            ]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "macos",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "macos"
+                },
+                {
+                    "type": "build",
+                    "name": "macos"
+                },
+                {
+                    "type": "test",
+                    "name": "macos"
+                }
+            ]
+        }
+    ]
+}
