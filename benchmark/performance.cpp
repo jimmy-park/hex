@@ -63,31 +63,40 @@ static void BM_fmt_format(benchmark::State& state)
 }
 BENCHMARK(BM_fmt_format);
 
-static void BM_use_table1_1(benchmark::State& state)
+static void BM_LUT1(benchmark::State& state)
 {
     for (auto _ : state) {
         for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingTable1_1(i));
+            benchmark::DoNotOptimize(ToHexUsingLUT1(i));
     }
 }
-BENCHMARK(BM_use_table1_1);
+BENCHMARK(BM_LUT1);
 
-static void BM_use_table1_2(benchmark::State& state)
+static void BM_LUT2(benchmark::State& state)
 {
     for (auto _ : state) {
         for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingTable1_2(i));
+            benchmark::DoNotOptimize(ToHexUsingLUT2(i));
     }
 }
-BENCHMARK(BM_use_table1_2);
+BENCHMARK(BM_LUT2);
 
-static void BM_use_table2(benchmark::State& state)
+static void BM_LUT3(benchmark::State& state)
 {
     for (auto _ : state) {
         for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingTable2(i));
+            benchmark::DoNotOptimize(ToHexUsingLUT3(i));
     }
 }
-BENCHMARK(BM_use_table2);
+BENCHMARK(BM_LUT3);
+
+static void BM_SWAR(benchmark::State& state)
+{
+    for (auto _ : state) {
+        for (auto i : vec)
+            benchmark::DoNotOptimize(ToHexUsingSWAR(i));
+    }
+}
+BENCHMARK(BM_SWAR);
 
 BENCHMARK_MAIN();

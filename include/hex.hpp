@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 #include <array>
+#include <bit>
 #include <charconv>
 #include <concepts>
 #include <format>
@@ -39,7 +41,7 @@ inline constexpr char kHexTable2[] = {
 
 std::string ToHexUsingSnprintf(std::unsigned_integral auto value)
 {
-    constexpr auto size = sizeof(value) * 2;
+    static constexpr auto size = sizeof(value) * 2;
     std::array<char, size + 1> buffer {};
 
     auto length = snprintf(buffer.data(), buffer.size(), "%llx", value);
@@ -55,9 +57,9 @@ std::string ToHexUsingStringstream(std::unsigned_integral auto value)
     return buffer.str();
 }
 
-constexpr std::string ToHexUsingToChars(std::unsigned_integral auto value)
+std::string ToHexUsingToChars(std::unsigned_integral auto value)
 {
-    constexpr auto size = sizeof(value) * 2;
+    static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
 
     auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + size, value, 16);
@@ -65,19 +67,19 @@ constexpr std::string ToHexUsingToChars(std::unsigned_integral auto value)
     return std::string { buffer.data(), ptr };
 }
 
-constexpr std::string ToHexUsingStdFormat(std::unsigned_integral auto value)
+std::string ToHexUsingStdFormat(std::unsigned_integral auto value)
 {
     return std::format("{:x}", value);
 }
 
-constexpr std::string ToHexUsingFmtFormat(std::unsigned_integral auto value)
+std::string ToHexUsingFmtFormat(std::unsigned_integral auto value)
 {
     return fmt::format("{:x}", value);
 }
 
-constexpr std::string ToHexUsingTable1_1(std::unsigned_integral auto value)
+std::string ToHexUsingLUT1(std::unsigned_integral auto value)
 {
-    constexpr auto size = sizeof(value) * 2;
+    static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* start = buffer.data();
     const auto* last = start + size;
@@ -94,9 +96,9 @@ constexpr std::string ToHexUsingTable1_1(std::unsigned_integral auto value)
     return { start + pos, last };
 }
 
-constexpr std::string ToHexUsingTable1_2(std::unsigned_integral auto value)
+std::string ToHexUsingLUT2(std::unsigned_integral auto value)
 {
-    constexpr auto size = sizeof(value) * 2;
+    static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* start = buffer.data();
     const auto* last = start + size;
@@ -122,9 +124,9 @@ constexpr std::string ToHexUsingTable1_2(std::unsigned_integral auto value)
     return { start + pos, last };
 }
 
-constexpr std::string ToHexUsingTable2(std::unsigned_integral auto value)
+std::string ToHexUsingLUT3(std::unsigned_integral auto value)
 {
-    constexpr auto size = sizeof(value) * 2;
+    static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* start = buffer.data();
     const auto* last = start + size;
@@ -148,6 +150,82 @@ constexpr std::string ToHexUsingTable2(std::unsigned_integral auto value)
     }
 
     return { start + pos, last };
+}
+
+std::string ToHexUsingSWAR(std::unsigned_integral auto value)
+{
+    static constexpr auto size = sizeof(value) * 2;
+    std::array<char, size> buffer {};
+    auto* start = buffer.data();
+
+    auto expand = [](auto x) {
+        std::uint64_t nibbles { 0 };
+
+        for (auto i { 0u }; i < 2 * sizeof(x); ++i) {
+            if constexpr (std::endian::native == std::endian::little) {
+                nibbles |= ((x & (0xfull << (4 * i))) >> (4 * i)) << (8 * (2 * sizeof(x) - 1 - i));
+            } else {
+                nibbles |= (x & (0xfull << (4 * i))) << (4 * i);
+            }
+        }
+
+        if constexpr (sizeof(x) == 1) {
+            return static_cast<std::uint16_t>(nibbles);
+        } else if constexpr (sizeof(x) == 2) {
+            return static_cast<std::uint32_t>(nibbles);
+        } else {
+            return static_cast<std::uint64_t>(nibbles);
+        }
+    };
+
+    auto convert = [](auto nibbles) {
+        auto pack = [nibbles](std::uint8_t byte) {
+            if constexpr (sizeof(nibbles) == 2) {
+                return static_cast<std::uint16_t>(byte * 0x0101u);
+            } else if constexpr (sizeof(nibbles) == 4) {
+                return static_cast<std::uint32_t>(byte * 0x01010101u);
+            } else {
+                return static_cast<std::uint64_t>(byte * 0x0101010101010101ull);
+            }
+        };
+
+        static constexpr auto correction = pack('a' - '0' - 10);
+        const auto ascii09 = pack('0') + nibbles;
+        const auto tmp = pack(0x80 - 10) + nibbles;
+        const auto msb = pack(0x80) & tmp;
+        const auto mask = msb - (msb >> 7);
+
+        return ascii09 + (mask & correction);
+    };
+
+    if constexpr (sizeof(value) < 8) {
+        const auto packed = convert(expand(value));
+        const auto* ptr = reinterpret_cast<const std::uint8_t*>(&packed);
+
+        std::copy_n(ptr, size, start);
+    } else {
+        const auto packed_hi = convert(expand(static_cast<std::uint32_t>(value >> 32)));
+        const auto packed_lo = convert(expand(static_cast<std::uint32_t>(value)));
+        auto* ptr_hi = reinterpret_cast<std::uint64_t*>(start);
+        auto* ptr_lo = ptr_hi + 1;
+
+        *ptr_hi = packed_hi;
+        *ptr_lo = packed_lo;
+    }
+
+    auto count { 0u };
+
+    while (value >= 0x10000) {
+        count += 4;
+        value >>= 16;
+    }
+
+    count += (value >= 0x1000) ? 4
+        : (value >= 0x100)     ? 3
+        : (value >= 0x10)      ? 2
+                               : 1;
+
+    return { start + size - count, start + size };
 }
 
 #endif // HEX_HPP_
