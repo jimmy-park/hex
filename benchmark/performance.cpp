@@ -63,6 +63,15 @@ static void BM_fmt_format(benchmark::State& state)
 }
 BENCHMARK(BM_fmt_format);
 
+static void BM_naive(benchmark::State& state)
+{
+    for (auto _ : state) {
+        for (auto i : vec)
+            benchmark::DoNotOptimize(ToHexUsingNaive(i));
+    }
+}
+BENCHMARK(BM_naive);
+
 static void BM_LUT1(benchmark::State& state)
 {
     for (auto _ : state) {

@@ -77,6 +77,28 @@ std::string ToHexUsingFmtFormat(std::unsigned_integral auto value)
     return fmt::format("{:x}", value);
 }
 
+std::string ToHexUsingNaive(std::unsigned_integral auto value)
+{
+    static constexpr auto size = sizeof(value) * 2;
+    std::array<char, size> buffer {};
+    const auto* first = buffer.data();
+    const auto* last = first + size;
+    auto pos = size;
+
+    do {
+        const auto nibble = static_cast<std::uint8_t>(value & 0xf);
+
+        buffer[--pos] = '0' + nibble;
+
+        if (nibble > 9)
+            buffer[pos] += 'a' - '0' - 10;
+
+        value >>= 4;
+    } while (value > 0);
+
+    return { first + pos, last };
+}
+
 std::string ToHexUsingLUT1(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
