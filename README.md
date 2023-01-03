@@ -10,7 +10,12 @@ Performance comparison of dec-to-hex implementations
   - `std::to_chars`
 - C++20
   - `std::format`
-- Custom hex functions using lookup table
+- Custom hex functions
+  - `Naive` : 4-bit shift then correct ASCII value
+  - `LUT1` : 4-bit shift with a 16-bit lookup table
+  - `LUT2` : 16-bit shift with a 16-bit lookup table
+  - `LUT3` : 16-bit shift with a 512-bit lookup table
+  - `SWAR` : use SIMD Within A Register (SWAR) techniques
 
 ## Build
 
@@ -27,10 +32,20 @@ cmake --workflow --preset windows
 
 ### Clang
 
-[Quick-bench](https://quick-bench.com/q/DPYQSsyR6-rW36621SEcjdKUqSE)
+[Quick-bench](https://quick-bench.com/q/f40pGWQkzPIRIFPsrXjig_SEZfY)
+
 ![clang](benchmark/result/clang.png)
 
 ### GCC
 
-[Quick-bench](https://quick-bench.com/q/QjM2hP1i0i6RaGuzs8Mlua0rgB8)
+[Quick-bench](https://quick-bench.com/q/cZyqicUAr8eX2Rs7HyRrFkP85YE)
+
 ![gcc](benchmark/result/gcc.png)
+
+## References
+
+- `std::to_chars` implementations
+  - [MSVC](https://github.com/microsoft/STL/blob/8ddf4da23939b5c65587ed05f783ff39b8801e0f/stl/inc/charconv#L116-L121)
+  - [Clang](https://github.com/llvm/llvm-project/blob/b20dd2b186fdc76828219b705a2b58f5830f4b9d/libcxx/include/charconv#L443-L466)
+  - [GCC](https://github.com/gcc-mirror/gcc/blob/d423e8dc59045d8f281dcb1a02559cb6f91456bf/libstdc%2B%2B-v3/include/std/charconv#L169-L213)
+- [Conversion numbers to hexadecimal representation](http://0x80.pl/articles/convert-to-hex.html)
