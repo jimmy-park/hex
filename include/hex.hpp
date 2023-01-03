@@ -3,8 +3,8 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <charconv>
@@ -41,18 +41,33 @@ inline constexpr char kHexTable2[] = {
 
 std::string ToHexUsingSnprintf(std::unsigned_integral auto value)
 {
-    static constexpr auto size = sizeof(value) * 2;
-    std::array<char, size + 1> buffer {};
+    static constexpr auto size = sizeof(value) * 2 + 1;
+    std::array<char, size> buffer {};
+    auto* first = buffer.data();
+    auto pos { 0u };
 
-    auto length = snprintf(buffer.data(), buffer.size(), "%llx", value);
+    if constexpr (sizeof(value) == 1) {
+        pos = std::snprintf(first, size, "%hhx", value);
+    } else if constexpr (sizeof(value) == 2) {
+        pos = std::snprintf(first, size, "%hx", value);
+    } else if constexpr (sizeof(value) == 4) {
+        pos = std::snprintf(first, size, "%lx", value);
+    } else {
+        pos = std::snprintf(first, size, "%llx", value);
+    }
 
-    return std::string { buffer.data(), static_cast<std::size_t>(length) };
+    return { first, first + pos };
 }
 
 std::string ToHexUsingStringstream(std::unsigned_integral auto value)
 {
     std::ostringstream buffer;
-    buffer << std::hex << value;
+
+    if constexpr (sizeof(value) == 1) {
+        buffer << std::hex << static_cast<std::uint32_t>(value);
+    } else {
+        buffer << std::hex << value;
+    }
 
     return buffer.str();
 }
@@ -61,10 +76,18 @@ std::string ToHexUsingToChars(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
+    auto* first = buffer.data();
+    auto* last = first + size;
 
-    auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + size, value, 16);
+    if constexpr (sizeof(value) == 1) {
+        auto [ptr, ec] = std::to_chars(first, last, static_cast<std::uint32_t>(value), 16);
 
-    return std::string { buffer.data(), ptr };
+        return { first, ptr };
+    } else {
+        auto [ptr, ec] = std::to_chars(first, last, value, 16);
+
+        return { first, ptr };
+    }
 }
 
 std::string ToHexUsingStdFormat(std::unsigned_integral auto value)
@@ -103,8 +126,8 @@ std::string ToHexUsingLUT1(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
-    const auto* start = buffer.data();
-    const auto* last = start + size;
+    const auto* first = buffer.data();
+    const auto* last = first + size;
     auto pos = size - 1;
 
     while (value >= 0x10u) {
@@ -115,15 +138,15 @@ std::string ToHexUsingLUT1(std::unsigned_integral auto value)
 
     buffer[pos] = kHexTable1[value];
 
-    return { start + pos, last };
+    return { first + pos, last };
 }
 
 std::string ToHexUsingLUT2(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
-    const auto* start = buffer.data();
-    const auto* last = start + size;
+    const auto* first = buffer.data();
+    const auto* last = first + size;
     auto pos = size - 1;
 
     while (value >= 0x100u) {
@@ -143,15 +166,15 @@ std::string ToHexUsingLUT2(std::unsigned_integral auto value)
         buffer[pos] = kHexTable1[value];
     }
 
-    return { start + pos, last };
+    return { first + pos, last };
 }
 
 std::string ToHexUsingLUT3(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
-    const auto* start = buffer.data();
-    const auto* last = start + size;
+    const auto* first = buffer.data();
+    const auto* last = first + size;
     auto pos = size - 1;
 
     while (value >= 0x100u) {
@@ -171,7 +194,7 @@ std::string ToHexUsingLUT3(std::unsigned_integral auto value)
         buffer[pos] = kHexTable2[value * 2 + 1];
     }
 
-    return { start + pos, last };
+    return { first + pos, last };
 }
 
 std::string ToHexUsingSWAR(std::unsigned_integral auto value)
@@ -181,12 +204,16 @@ std::string ToHexUsingSWAR(std::unsigned_integral auto value)
     auto* start = buffer.data();
 
     auto expand = [](auto x) {
+        static_assert(sizeof(x) < 8);
+
         std::uint64_t nibbles { 0 };
 
         for (auto i { 0u }; i < 2 * sizeof(x); ++i) {
             if constexpr (std::endian::native == std::endian::little) {
+                // 0x1234 -> 0x04030201
                 nibbles |= ((x & (0xfull << (4 * i))) >> (4 * i)) << (8 * (2 * sizeof(x) - 1 - i));
             } else {
+                // 0x1234 -> 0x01020304
                 nibbles |= (x & (0xfull << (4 * i))) << (4 * i);
             }
         }
@@ -201,7 +228,9 @@ std::string ToHexUsingSWAR(std::unsigned_integral auto value)
     };
 
     auto convert = [](auto nibbles) {
-        auto pack = [nibbles](std::uint8_t byte) {
+        auto pack = [](std::uint8_t byte) {
+            static_assert(sizeof(nibbles) > 1);
+
             if constexpr (sizeof(nibbles) == 2) {
                 return static_cast<std::uint16_t>(byte * 0x0101u);
             } else if constexpr (sizeof(nibbles) == 4) {

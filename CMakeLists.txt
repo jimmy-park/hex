@@ -35,15 +35,5 @@ target_sources(hex INTERFACE
     FILES include/hex.hpp
 )
 
-add_executable(perf benchmark/performance.cpp)
-target_link_libraries(perf PRIVATE hex benchmark::benchmark)
-
-if(HEX_BENCHMARK_AFTER_BUILD)
-    add_custom_command(TARGET perf POST_BUILD
-        COMMAND $<$<CONFIG:Release>:$<TARGET_FILE:perf>>
-    )
-endif()
-
-add_executable(validate test/validate.cpp)
-target_link_libraries(validate PRIVATE hex)
-add_test(NAME test-validate COMMAND validate)
+add_subdirectory(benchmark)
+add_subdirectory(test)
