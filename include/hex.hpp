@@ -201,7 +201,9 @@ std::string ToHexUsingSWAR(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
-    auto* start = buffer.data();
+    auto* first = buffer.data();
+    const auto last = first + size;
+    const auto pos = std::countl_zero(value) / 4 - static_cast<int>(value == 0);
 
     auto expand = [](auto x) {
         static_assert(sizeof(x) < 8);
@@ -253,30 +255,18 @@ std::string ToHexUsingSWAR(std::unsigned_integral auto value)
         const auto packed = convert(expand(value));
         const auto* ptr = reinterpret_cast<const std::uint8_t*>(&packed);
 
-        std::copy_n(ptr, size, start);
+        std::copy_n(ptr, size, first);
     } else {
         const auto packed_hi = convert(expand(static_cast<std::uint32_t>(value >> 32)));
         const auto packed_lo = convert(expand(static_cast<std::uint32_t>(value)));
-        auto* ptr_hi = reinterpret_cast<std::uint64_t*>(start);
+        auto* ptr_hi = reinterpret_cast<std::uint64_t*>(first);
         auto* ptr_lo = ptr_hi + 1;
 
         *ptr_hi = packed_hi;
         *ptr_lo = packed_lo;
     }
 
-    auto count { 0u };
-
-    while (value >= 0x10000) {
-        count += 4;
-        value >>= 16;
-    }
-
-    count += (value >= 0x1000) ? 4
-        : (value >= 0x100)     ? 3
-        : (value >= 0x10)      ? 2
-                               : 1;
-
-    return { start + size - count, start + size };
+    return { first + pos, last };
 }
 
 #endif // HEX_HPP_
