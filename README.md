@@ -11,7 +11,7 @@ Performance comparison of dec-to-hex implementations
 - C++20
   - `std::format`
 - Custom hex functions
-  - `Naive` : 4-bit shift then correct ASCII value
+  - `Naive` : 4-bit shift then calculate ASCII value
   - `LUT1` : 4-bit shift with a 16-bit lookup table
   - `LUT2` : 16-bit shift with a 16-bit lookup table
   - `LUT3` : 16-bit shift with a 512-bit lookup table
@@ -32,13 +32,13 @@ cmake --workflow --preset windows
 
 ### Clang
 
-[Quick-bench](https://quick-bench.com/q/f40pGWQkzPIRIFPsrXjig_SEZfY)
+[Quick-bench](https://quick-bench.com/q/k4TcmGTNlKF58qYx-KPXktUJMUw)
 
 ![clang](benchmark/result/clang.png)
 
 ### GCC
 
-[Quick-bench](https://quick-bench.com/q/cZyqicUAr8eX2Rs7HyRrFkP85YE)
+[Quick-bench](https://quick-bench.com/q/bh0ya3v_6iaQ-id1ODezBcURS0w)
 
 ![gcc](benchmark/result/gcc.png)
 
