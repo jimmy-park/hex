@@ -4,108 +4,81 @@
 #include <benchmark/benchmark.h>
 #include <hex.hpp>
 
-inline static const auto vec = []() {
-    std::vector<std::uint64_t> ret(1 << 10, 0);
+#define ENABLE_BENCH(func)                                     \
+    static void BM_##func(benchmark::State& state)             \
+    {                                                          \
+        static constexpr auto kCount { 1u << 10 };             \
+        std::random_device rd;                                 \
+        std::mt19937_64 gen { rd() };                          \
+                                                               \
+        switch (state.range(0)) {                              \
+        case 8: {                                              \
+            std::uniform_int_distribution<std::uint16_t> dist; \
+            std::vector<std::uint8_t> buffer(kCount, 0);       \
+                                                               \
+            for (auto& i : buffer)                             \
+                i = static_cast<std::uint8_t>(dist(gen));      \
+                                                               \
+            for (auto _ : state) {                             \
+                for (auto i : buffer) {                        \
+                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                }                                              \
+            }                                                  \
+        } break;                                               \
+        case 16: {                                             \
+            std::uniform_int_distribution<std::uint16_t> dist; \
+            std::vector<std::uint16_t> buffer(kCount, 0);      \
+                                                               \
+            for (auto& i : buffer)                             \
+                i = dist(gen);                                 \
+                                                               \
+            for (auto _ : state) {                             \
+                for (auto i : buffer) {                        \
+                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                }                                              \
+            }                                                  \
+        } break;                                               \
+        case 32: {                                             \
+            std::uniform_int_distribution<std::uint32_t> dist; \
+            std::vector<std::uint32_t> buffer(kCount, 0);      \
+                                                               \
+            for (auto& i : buffer)                             \
+                i = dist(gen);                                 \
+                                                               \
+            for (auto _ : state) {                             \
+                for (auto i : buffer) {                        \
+                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                }                                              \
+            }                                                  \
+        } break;                                               \
+        case 64: {                                             \
+            std::uniform_int_distribution<std::uint64_t> dist; \
+            std::vector<std::uint64_t> buffer(kCount, 0);      \
+                                                               \
+            for (auto& i : buffer)                             \
+                i = dist(gen);                                 \
+                                                               \
+            for (auto _ : state) {                             \
+                for (auto i : buffer) {                        \
+                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                }                                              \
+            }                                                  \
+        } break;                                               \
+        default:                                               \
+            break;                                             \
+        }                                                      \
+    }                                                          \
+    BENCHMARK(BM_##func)->RangeMultiplier(2)->Range(8, 64)
 
-    std::random_device rd;
-    std::mt19937 gen { rd() };
-    std::uniform_int_distribution<std::uint64_t> dist;
-
-    for (auto& i : ret) {
-        i = dist(gen);
-    }
-
-    return ret;
-}();
-
-static void BM_snprintf(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingSnprintf(i));
-    }
-}
-BENCHMARK(BM_snprintf);
-
-static void BM_stringstream(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingStringstream(i));
-    }
-}
-BENCHMARK(BM_stringstream);
-
-static void BM_to_chars(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingToChars(i));
-    }
-}
-BENCHMARK(BM_to_chars);
-
-static void BM_std_format(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingStdFormat(i));
-    }
-}
-BENCHMARK(BM_std_format);
-
-static void BM_fmt_format(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingFmtFormat(i));
-    }
-}
-BENCHMARK(BM_fmt_format);
-
-static void BM_naive(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingNaive(i));
-    }
-}
-BENCHMARK(BM_naive);
-
-static void BM_LUT1(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingLUT1(i));
-    }
-}
-BENCHMARK(BM_LUT1);
-
-static void BM_LUT2(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingLUT2(i));
-    }
-}
-BENCHMARK(BM_LUT2);
-
-static void BM_LUT3(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingLUT3(i));
-    }
-}
-BENCHMARK(BM_LUT3);
-
-static void BM_SWAR(benchmark::State& state)
-{
-    for (auto _ : state) {
-        for (auto i : vec)
-            benchmark::DoNotOptimize(ToHexUsingSWAR(i));
-    }
-}
-BENCHMARK(BM_SWAR);
+ENABLE_BENCH(Snprintf);
+ENABLE_BENCH(Stringstream);
+ENABLE_BENCH(ToChars);
+ENABLE_BENCH(StdFormat);
+ENABLE_BENCH(FmtFormat);
+ENABLE_BENCH(Naive);
+ENABLE_BENCH(LUT1);
+ENABLE_BENCH(LUT2);
+ENABLE_BENCH(LUT3);
+ENABLE_BENCH(SWAR);
 
 BENCHMARK_MAIN();

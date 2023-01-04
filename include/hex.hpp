@@ -39,7 +39,7 @@ inline constexpr char kHexTable2[] = {
     'f', '0', 'f', '1', 'f', '2', 'f', '3', 'f', '4', 'f', '5', 'f', '6', 'f', '7', 'f', '8', 'f', '9', 'f', 'a', 'f', 'b', 'f', 'c', 'f', 'd', 'f', 'e', 'f', 'f'
 };
 
-std::string ToHexUsingSnprintf(std::unsigned_integral auto value)
+std::string ToHexSnprintf(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2 + 1;
     std::array<char, size> buffer {};
@@ -59,7 +59,7 @@ std::string ToHexUsingSnprintf(std::unsigned_integral auto value)
     return { first, first + pos };
 }
 
-std::string ToHexUsingStringstream(std::unsigned_integral auto value)
+std::string ToHexStringstream(std::unsigned_integral auto value)
 {
     std::ostringstream buffer;
 
@@ -72,7 +72,7 @@ std::string ToHexUsingStringstream(std::unsigned_integral auto value)
     return buffer.str();
 }
 
-std::string ToHexUsingToChars(std::unsigned_integral auto value)
+std::string ToHexToChars(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -90,17 +90,17 @@ std::string ToHexUsingToChars(std::unsigned_integral auto value)
     }
 }
 
-std::string ToHexUsingStdFormat(std::unsigned_integral auto value)
+std::string ToHexStdFormat(std::unsigned_integral auto value)
 {
     return std::format("{:x}", value);
 }
 
-std::string ToHexUsingFmtFormat(std::unsigned_integral auto value)
+std::string ToHexFmtFormat(std::unsigned_integral auto value)
 {
     return fmt::format("{:x}", value);
 }
 
-std::string ToHexUsingNaive(std::unsigned_integral auto value)
+std::string ToHexNaive(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -122,7 +122,7 @@ std::string ToHexUsingNaive(std::unsigned_integral auto value)
     return { first + pos, last };
 }
 
-std::string ToHexUsingLUT1(std::unsigned_integral auto value)
+std::string ToHexLUT1(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -141,7 +141,7 @@ std::string ToHexUsingLUT1(std::unsigned_integral auto value)
     return { first + pos, last };
 }
 
-std::string ToHexUsingLUT2(std::unsigned_integral auto value)
+std::string ToHexLUT2(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -169,7 +169,7 @@ std::string ToHexUsingLUT2(std::unsigned_integral auto value)
     return { first + pos, last };
 }
 
-std::string ToHexUsingLUT3(std::unsigned_integral auto value)
+std::string ToHexLUT3(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -197,7 +197,7 @@ std::string ToHexUsingLUT3(std::unsigned_integral auto value)
     return { first + pos, last };
 }
 
-std::string ToHexUsingSWAR(std::unsigned_integral auto value)
+std::string ToHexSWAR(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};

@@ -6,21 +6,20 @@
 
 int validate(std::unsigned_integral auto value)
 {
-    const auto a = ToHexUsingSnprintf(value);
-    const auto b = ToHexUsingStringstream(value);
-    const auto c = ToHexUsingToChars(value);
-    const auto d = ToHexUsingStdFormat(value);
-    const auto e = ToHexUsingFmtFormat(value);
-    const auto f = ToHexUsingNaive(value);
-    const auto g = ToHexUsingLUT1(value);
-    const auto h = ToHexUsingLUT2(value);
-    const auto i = ToHexUsingLUT3(value);
-    const auto j = ToHexUsingSWAR(value);
+    const auto a = ToHexSnprintf(value);
+    const auto b = ToHexStringstream(value);
+    const auto c = ToHexToChars(value);
+    const auto d = ToHexStdFormat(value);
+    const auto e = ToHexFmtFormat(value);
+    const auto f = ToHexNaive(value);
+    const auto g = ToHexLUT1(value);
+    const auto h = ToHexLUT2(value);
+    const auto i = ToHexLUT3(value);
+    const auto j = ToHexSWAR(value);
 
     if (a != b || b != c || c != d || d != e || e != f || f != g || g != h || h != i || i != j) {
         fmt::print("Failed on value {}\n", value);
 
-        fmt::print("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n", a, b, c, d, e, f, g, h, i, j);
         return -1;
     }
 
