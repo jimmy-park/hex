@@ -1,3 +1,6 @@
 add_executable(validate validate.cpp)
 target_link_libraries(validate PRIVATE hex)
-add_test(NAME test-validate COMMAND validate CONFIGURATIONS Release)
+add_test(NAME test-validate-uint8 COMMAND validate 1 CONFIGURATIONS Release)
+add_test(NAME test-validate-uint16 COMMAND validate 2 CONFIGURATIONS Release)
+add_test(NAME test-validate-uint32 COMMAND validate 3 CONFIGURATIONS Release)
+add_test(NAME test-validate-uint64 COMMAND validate 4 CONFIGURATIONS Release)

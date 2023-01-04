@@ -1,23 +1,31 @@
 #include <chrono>
 #include <limits>
 #include <random>
+#include <string_view>
 
 #include <hex.hpp>
 
-int validate(std::unsigned_integral auto value)
-{
-    const auto a = ToHexSnprintf(value);
-    const auto b = ToHexStringstream(value);
-    const auto c = ToHexToChars(value);
-    const auto d = ToHexStdFormat(value);
-    const auto e = ToHexFmtFormat(value);
-    const auto f = ToHexNaive(value);
-    const auto g = ToHexLUT1(value);
-    const auto h = ToHexLUT2(value);
-    const auto i = ToHexLUT3(value);
-    const auto j = ToHexSWAR(value);
+using namespace std::literals;
 
-    if (a != b || b != c || c != d || d != e || e != f || f != g || g != h || h != i || i != j) {
+int Validate(std::unsigned_integral auto value)
+{
+    auto compare = [](auto&& first, auto&&... last) {
+        return ((first == last) && ...);
+    };
+
+    auto success = compare(
+        ToHexSnprintf(value),
+        ToHexStringstream(value),
+        ToHexToChars(value),
+        ToHexStdFormat(value),
+        ToHexFmtFormat(value),
+        ToHexNaive(value),
+        ToHexLUT1(value),
+        ToHexLUT2(value),
+        ToHexLUT3(value),
+        ToHexSWAR(value));
+
+    if (!success) {
         fmt::print("Failed on value {}\n", value);
 
         return -1;
@@ -26,14 +34,21 @@ int validate(std::unsigned_integral auto value)
     return 0;
 }
 
-template <std::unsigned_integral Uint>
-int test()
-{
-    const auto start = std::chrono::high_resolution_clock::now();
+// fmt::print("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n", a, b, c, d, e, f, g, h, i, j);
 
+// int Register(auto func)
+//{
+//     return 1;
+// }
+//
+// auto x = Register(ToHexFmtFormat<unsigned int>);
+
+template <std::unsigned_integral Uint>
+int Test()
+{
     if constexpr (sizeof(Uint) < 4) {
         for (Uint i { 0 }; i < std::numeric_limits<Uint>::max(); ++i) {
-            if (validate(i) == -1)
+            if (Validate(i) == -1)
                 return -1;
         }
     } else {
@@ -43,39 +58,36 @@ int test()
         std::uniform_int_distribution<Uint> dist;
 
         for (auto i { 0u }; i < kCount; ++i) {
-            if (validate(dist(gen)) == -1)
+            if (Validate(dist(gen)) == -1)
                 return -1;
         }
-    }
-
-    const auto end = std::chrono::high_resolution_clock::now();
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-    fmt::print("{} ms\n", ms.count());
+    };
 
     return 0;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    fmt::print("Test std::uint8_t\t");
+    std::array<bool, 4> enable;
+    enable.fill(true);
 
-    if (test<std::uint8_t>() == -1)
+    if (argc == 2) {
+        enable[0] = (argv[1] == "1"sv);
+        enable[1] = (argv[1] == "2"sv);
+        enable[2] = (argv[1] == "3"sv);
+        enable[3] = (argv[1] == "4"sv);
+    }
+
+    if (enable[0] && (Test<std::uint8_t>() == -1))
         return -1;
 
-    fmt::print("Test std::uint16_t\t");
-
-    if (test<std::uint16_t>() == -1)
+    if (enable[1] && (Test<std::uint16_t>() == -1))
         return -1;
 
-    fmt::print("Test std::uint32_t\t");
-
-    if (test<std::uint32_t>() == -1)
+    if (enable[2] && (Test<std::uint32_t>() == -1))
         return -1;
 
-    fmt::print("Test std::uint64_t\t");
-
-    if (test<std::uint64_t>() == -1)
+    if (enable[3] && (Test<std::uint64_t>() == -1))
         return -1;
 
     return 0;
