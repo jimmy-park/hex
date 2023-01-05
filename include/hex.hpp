@@ -10,11 +10,15 @@
 #include <charconv>
 #include <concepts>
 #include <format>
+#include <iomanip>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include <fmt/format.h>
+
+namespace hex::detail {
 
 inline constexpr char kHexTable1[] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
@@ -39,68 +43,107 @@ inline constexpr char kHexTable2[] = {
     'f', '0', 'f', '1', 'f', '2', 'f', '3', 'f', '4', 'f', '5', 'f', '6', 'f', '7', 'f', '8', 'f', '9', 'f', 'a', 'f', 'b', 'f', 'c', 'f', 'd', 'f', 'e', 'f', 'f'
 };
 
-std::string ToHexSnprintf(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string snprintf(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2 + 1;
     std::array<char, size> buffer {};
     auto* first = buffer.data();
     auto pos { 0u };
 
-    if constexpr (sizeof(value) == 1) {
-        pos = std::snprintf(first, size, "%hhx", value);
-    } else if constexpr (sizeof(value) == 2) {
-        pos = std::snprintf(first, size, "%hx", value);
-    } else if constexpr (sizeof(value) == 4) {
-        pos = std::snprintf(first, size, "%lx", value);
+    if constexpr (leading_zero) {
+        if constexpr (sizeof(value) == 1) {
+            pos = std::snprintf(first, size, "%02hhx", value);
+        } else if constexpr (sizeof(value) == 2) {
+            pos = std::snprintf(first, size, "%04hx", value);
+        } else if constexpr (sizeof(value) == 4) {
+            pos = std::snprintf(first, size, "%08x", value);
+        } else {
+            pos = std::snprintf(first, size, "%016llx", value);
+        }
     } else {
-        pos = std::snprintf(first, size, "%llx", value);
+        if constexpr (sizeof(value) == 1) {
+            pos = std::snprintf(first, size, "%hhx", value);
+        } else if constexpr (sizeof(value) == 2) {
+            pos = std::snprintf(first, size, "%hx", value);
+        } else if constexpr (sizeof(value) == 4) {
+            pos = std::snprintf(first, size, "%x", value);
+        } else {
+            pos = std::snprintf(first, size, "%llx", value);
+        }
     }
 
     return { first, first + pos };
 }
 
-std::string ToHexStringstream(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string stringstream(std::unsigned_integral auto value)
 {
     std::ostringstream buffer;
+    buffer << std::hex;
+
+    if constexpr (leading_zero) {
+        buffer << std::setw(sizeof(value) * 2) << std::setfill('0');
+    }
 
     if constexpr (sizeof(value) == 1) {
-        buffer << std::hex << static_cast<std::uint32_t>(value);
+        buffer << static_cast<std::uint32_t>(value);
     } else {
-        buffer << std::hex << value;
+        buffer << value;
     }
 
     return buffer.str();
 }
 
-std::string ToHexToChars(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string to_chars(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     auto* first = buffer.data();
     auto* last = first + size;
+    auto length { 0u };
 
     if constexpr (sizeof(value) == 1) {
         auto [ptr, ec] = std::to_chars(first, last, static_cast<std::uint32_t>(value), 16);
-
-        return { first, ptr };
+        length = ptr - first;
     } else {
         auto [ptr, ec] = std::to_chars(first, last, value, 16);
+        length = ptr - first;
+    }
 
-        return { first, ptr };
+    if constexpr (leading_zero) {
+        std::memmove(last - length, first, length);
+        std::fill_n(first, size - length, '0');
+
+        return { first, last };
+    } else {
+        return { first, first + length };
     }
 }
 
-std::string ToHexStdFormat(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string format(std::unsigned_integral auto value)
 {
-    return std::format("{:x}", value);
+    if constexpr (leading_zero) {
+        return std::format("{0:0{1}x}", value, sizeof(value) * 2);
+    } else {
+        return std::format("{:x}", value);
+    }
 }
 
-std::string ToHexFmtFormat(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string fmt_format(std::unsigned_integral auto value)
 {
-    return fmt::format("{:x}", value);
+    if constexpr (leading_zero) {
+        return fmt::format("{0:0{1}x}", value, sizeof(value) * 2);
+    } else {
+        return fmt::format("{:x}", value);
+    }
 }
 
-std::string ToHexNaive(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string naive(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
@@ -108,10 +151,14 @@ std::string ToHexNaive(std::unsigned_integral auto value)
     const auto* last = first + size;
     auto pos = size;
 
-    do {
-        const auto nibble = static_cast<std::uint8_t>(value & 0xf);
+    if constexpr (leading_zero) {
+        buffer.fill('0');
+    }
 
-        buffer[--pos] = '0' + nibble;
+    do {
+        const auto nibble = value & 0xf;
+
+        buffer[--pos] = static_cast<char>('0' + nibble);
 
         if (nibble > 9)
             buffer[pos] += 'a' - '0' - 10;
@@ -119,16 +166,25 @@ std::string ToHexNaive(std::unsigned_integral auto value)
         value >>= 4;
     } while (value > 0);
 
-    return { first + pos, last };
+    if constexpr (leading_zero) {
+        return { first, last };
+    } else {
+        return { first + pos, last };
+    }
 }
 
-std::string ToHexLUT1(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string LUT1(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* first = buffer.data();
     const auto* last = first + size;
     auto pos = size - 1;
+
+    if constexpr (leading_zero) {
+        buffer.fill('0');
+    }
 
     while (value >= 0x10u) {
         buffer[pos] = kHexTable1[value % 0x10u];
@@ -138,16 +194,25 @@ std::string ToHexLUT1(std::unsigned_integral auto value)
 
     buffer[pos] = kHexTable1[value];
 
-    return { first + pos, last };
+    if constexpr (leading_zero) {
+        return { first, last };
+    } else {
+        return { first + pos, last };
+    }
 }
 
-std::string ToHexLUT2(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string LUT2(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* first = buffer.data();
     const auto* last = first + size;
     auto pos = size - 1;
+
+    if constexpr (leading_zero) {
+        buffer.fill('0');
+    }
 
     while (value >= 0x100u) {
         buffer[pos] = kHexTable1[value % 0x10u];
@@ -166,16 +231,25 @@ std::string ToHexLUT2(std::unsigned_integral auto value)
         buffer[pos] = kHexTable1[value];
     }
 
-    return { first + pos, last };
+    if constexpr (leading_zero) {
+        return { first, last };
+    } else {
+        return { first + pos, last };
+    }
 }
 
-std::string ToHexLUT3(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string LUT3(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     const auto* first = buffer.data();
     const auto* last = first + size;
     auto pos = size - 1;
+
+    if constexpr (leading_zero) {
+        buffer.fill('0');
+    }
 
     while (value >= 0x100u) {
         const auto num = (value % 0x100u) * 2;
@@ -194,16 +268,20 @@ std::string ToHexLUT3(std::unsigned_integral auto value)
         buffer[pos] = kHexTable2[value * 2 + 1];
     }
 
-    return { first + pos, last };
+    if constexpr (leading_zero) {
+        return { first, last };
+    } else {
+        return { first + pos, last };
+    }
 }
 
-std::string ToHexSWAR(std::unsigned_integral auto value)
+template <bool leading_zero>
+std::string SWAR(std::unsigned_integral auto value)
 {
     static constexpr auto size = sizeof(value) * 2;
     std::array<char, size> buffer {};
     auto* first = buffer.data();
     const auto last = first + size;
-    const auto pos = std::countl_zero(value) / 4 - static_cast<int>(value == 0);
 
     auto expand = [](auto x) {
         static_assert(sizeof(x) < 8);
@@ -266,7 +344,41 @@ std::string ToHexSWAR(std::unsigned_integral auto value)
         *ptr_lo = packed_lo;
     }
 
-    return { first + pos, last };
+    if constexpr (leading_zero) {
+        return { first, last };
+    } else {
+        const auto pos = std::countl_zero(value) / 4 - static_cast<int>(value == 0);
+
+        return { first + pos, last };
+    }
 }
+
+} // namespace hex::detail
+
+namespace hex {
+
+auto snprintf(auto value) { return detail::snprintf<false>(value); }
+auto stringstream(auto value) { return detail::stringstream<false>(value); }
+auto to_chars(auto value) { return detail::to_chars<false>(value); }
+auto format(auto value) { return detail::format<false>(value); }
+auto fmt_format(auto value) { return detail::fmt_format<false>(value); }
+auto naive(auto value) { return detail::naive<false>(value); }
+auto LUT1(auto value) { return detail::LUT1<false>(value); }
+auto LUT2(auto value) { return detail::LUT2<false>(value); }
+auto LUT3(auto value) { return detail::LUT3<false>(value); }
+auto SWAR(auto value) { return detail::SWAR<false>(value); }
+
+auto snprintf_LZ(auto value) { return detail::snprintf<true>(value); }
+auto stringstream_LZ(auto value) { return detail::stringstream<true>(value); }
+auto to_chars_LZ(auto value) { return detail::to_chars<true>(value); }
+auto format_LZ(auto value) { return detail::format<true>(value); }
+auto fmt_format_LZ(auto value) { return detail::fmt_format<true>(value); }
+auto naive_LZ(auto value) { return detail::naive<true>(value); }
+auto LUT1_LZ(auto value) { return detail::LUT1<true>(value); }
+auto LUT2_LZ(auto value) { return detail::LUT2<true>(value); }
+auto LUT3_LZ(auto value) { return detail::LUT3<true>(value); }
+auto SWAR_LZ(auto value) { return detail::SWAR<true>(value); }
+
+} // namespace hex
 
 #endif // HEX_HPP_

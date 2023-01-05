@@ -21,7 +21,7 @@
                                                                \
             for (auto _ : state) {                             \
                 for (auto i : buffer) {                        \
-                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                    benchmark::DoNotOptimize(hex::func(i));    \
                 }                                              \
             }                                                  \
         } break;                                               \
@@ -34,7 +34,7 @@
                                                                \
             for (auto _ : state) {                             \
                 for (auto i : buffer) {                        \
-                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                    benchmark::DoNotOptimize(hex::func(i));    \
                 }                                              \
             }                                                  \
         } break;                                               \
@@ -47,7 +47,7 @@
                                                                \
             for (auto _ : state) {                             \
                 for (auto i : buffer) {                        \
-                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                    benchmark::DoNotOptimize(hex::func(i));    \
                 }                                              \
             }                                                  \
         } break;                                               \
@@ -60,7 +60,7 @@
                                                                \
             for (auto _ : state) {                             \
                 for (auto i : buffer) {                        \
-                    benchmark::DoNotOptimize(ToHex##func(i));  \
+                    benchmark::DoNotOptimize(hex::func(i));    \
                 }                                              \
             }                                                  \
         } break;                                               \
@@ -70,15 +70,26 @@
     }                                                          \
     BENCHMARK(BM_##func)->RangeMultiplier(2)->Range(8, 64)
 
-ENABLE_BENCH(Snprintf);
-ENABLE_BENCH(Stringstream);
-ENABLE_BENCH(ToChars);
-ENABLE_BENCH(StdFormat);
-ENABLE_BENCH(FmtFormat);
-ENABLE_BENCH(Naive);
+ENABLE_BENCH(snprintf);
+ENABLE_BENCH(stringstream);
+ENABLE_BENCH(to_chars);
+ENABLE_BENCH(format);
+ENABLE_BENCH(fmt_format);
+ENABLE_BENCH(naive);
 ENABLE_BENCH(LUT1);
 ENABLE_BENCH(LUT2);
 ENABLE_BENCH(LUT3);
 ENABLE_BENCH(SWAR);
+
+ENABLE_BENCH(snprintf_LZ);
+ENABLE_BENCH(stringstream_LZ);
+ENABLE_BENCH(to_chars_LZ);
+ENABLE_BENCH(format_LZ);
+ENABLE_BENCH(fmt_format_LZ);
+ENABLE_BENCH(naive_LZ);
+ENABLE_BENCH(LUT1_LZ);
+ENABLE_BENCH(LUT2_LZ);
+ENABLE_BENCH(LUT3_LZ);
+ENABLE_BENCH(SWAR_LZ);
 
 BENCHMARK_MAIN();
