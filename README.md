@@ -11,15 +11,18 @@ Performance comparison of dec-to-hex implementations
 - C++20
   - `std::format`
 - Custom hex functions
-  - `Naive` : 4-bit shift then calculate ASCII value
-  - `LUT1` : 4-bit shift with a 16-bit lookup table
-  - `LUT2` : 16-bit shift with a 16-bit lookup table
-  - `LUT3` : 16-bit shift with a 512-bit lookup table
-  - `SWAR` : use SIMD Within A Register (SWAR) techniques
+  - `hex::naive` : 4-bit shift then calculate ASCII value
+  - `hex::LUT1` : 4-bit shift with a 16-byte lookup table
+  - `hex::LUT2` : 8-bit shift with a 16-byte lookup table
+  - `hex::LUT3` : 8-bit shift with a 512-byte lookup table
+  - `hex::SWAR` : use SIMD Within A Register (SWAR) techniques
 
 ## Build
 
 ```sh
+# List all presets
+cmake --list-presets all
+
 # Use a workflow preset to configure/build/test at once
 cmake --workflow --preset windows
 ```
