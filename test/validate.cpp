@@ -3,8 +3,7 @@
 #include <random>
 #include <string_view>
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_all.hpp>
+#include <catch2/catch_all.hpp>
 #include <hex.hpp>
 
 using namespace std::literals;
@@ -40,86 +39,42 @@ using namespace Catch::Matchers;
 
 inline constexpr auto kCount = 1u << 20;
 
-TEST_CASE("Unit test for std::uint8_t without leading zero")
+TEMPLATE_TEST_CASE("Unit test for non leading zero", "[validate]", std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t)
 {
-    std::uint8_t i { 0 };
+    if constexpr (sizeof(TestType) < 4) {
+        TestType i { 0 };
 
-    do {
-        COMPARE(i);
-    } while (++i != 0);
-}
+        do {
+            COMPARE(i);
+        } while (++i != 0);
+    } else {
+        std::random_device rd;
+        std::mt19937_64 gen { rd() };
+        std::uniform_int_distribution<TestType> dist;
 
-TEST_CASE("Unit test for std::uint16_t without leading zero")
-{
-    std::uint16_t i { 0 };
-
-    do {
-        COMPARE(i);
-    } while (++i != 0);
-}
-
-TEST_CASE("Unit test for std::uint32_t without leading zero")
-{
-    std::random_device rd;
-    std::mt19937_64 gen { rd() };
-    std::uniform_int_distribution<std::uint32_t> dist;
-
-    for (auto i { 0u }; i < kCount; ++i) {
-        auto value = dist(gen);
-        COMPARE(value);
+        for (auto i { 0u }; i < kCount; ++i) {
+            auto value = dist(gen);
+            COMPARE(value);
+        }
     }
 }
 
-TEST_CASE("Unit test for std::uint64_t without leading zero")
+TEMPLATE_TEST_CASE("Unit test for leading zero", "[validate]", std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t)
 {
-    std::random_device rd;
-    std::mt19937_64 gen { rd() };
-    std::uniform_int_distribution<std::uint64_t> dist;
+    if constexpr (sizeof(TestType) < 4) {
+        TestType i { 0 };
 
-    for (auto i { 0u }; i < kCount; ++i) {
-        auto value = dist(gen);
-        COMPARE(value);
-    }
-}
+        do {
+            COMPARE_LZ(i);
+        } while (++i != 0);
+    } else {
+        std::random_device rd;
+        std::mt19937_64 gen { rd() };
+        std::uniform_int_distribution<TestType> dist;
 
-TEST_CASE("Unit test for std::uint8_t with leading zero")
-{
-    std::uint8_t i { 0 };
-
-    do {
-        COMPARE_LZ(i);
-    } while (++i != 0);
-}
-
-TEST_CASE("Unit test for std::uint16_t with leading zero")
-{
-    std::uint16_t i { 0 };
-
-    do {
-        COMPARE_LZ(i);
-    } while (++i != 0);
-}
-
-TEST_CASE("Unit test for std::uint32_t with leading zero")
-{
-    std::random_device rd;
-    std::mt19937_64 gen { rd() };
-    std::uniform_int_distribution<std::uint32_t> dist;
-
-    for (auto i { 0u }; i < kCount; ++i) {
-        auto value = dist(gen);
-        COMPARE_LZ(value);
-    }
-}
-
-TEST_CASE("Unit test for std::uint64_t with leading zero")
-{
-    std::random_device rd;
-    std::mt19937_64 gen { rd() };
-    std::uniform_int_distribution<std::uint64_t> dist;
-
-    for (auto i { 0u }; i < kCount; ++i) {
-        auto value = dist(gen);
-        COMPARE_LZ(value);
+        for (auto i { 0u }; i < kCount; ++i) {
+            auto value = dist(gen);
+            COMPARE_LZ(value);
+        }
     }
 }
