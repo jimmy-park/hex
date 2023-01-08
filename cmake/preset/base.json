@@ -9,7 +9,9 @@
             "cmakeExecutable": "cmake",
             "cacheVariables": {
                 "CPM_SOURCE_CACHE": "${sourceDir}/build/.cache",
-                "HEX_BENCHMARK_AFTER_BUILD": true
+                "HEX_BUILD_BENCHMARKS": true,
+                "HEX_BUILD_TESTS": true,
+                "HEX_RUN_BENCHMARKS": false
             }
         },
         {
@@ -187,8 +189,11 @@
             "hidden": true,
             "output": {
                 "shortProgress": true,
-                "verbosity": "verbose",
+                "verbosity": "default",
                 "outputOnFailure": true
+            },
+            "execution": {
+                "jobs": 8
             }
         }
     ]

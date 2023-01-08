@@ -3,95 +3,123 @@
 #include <random>
 #include <string_view>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_all.hpp>
 #include <hex.hpp>
 
 using namespace std::literals;
+using namespace Catch::Matchers;
 
-bool Validate(std::unsigned_integral auto value)
+#define COMPARE(value)                                            \
+    do {                                                          \
+        auto expected = hex::snprintf(value);                     \
+        REQUIRE_THAT(expected, Equals(hex::stringstream(value))); \
+        REQUIRE_THAT(expected, Equals(hex::to_chars(value)));     \
+        REQUIRE_THAT(expected, Equals(hex::format(value)));       \
+        REQUIRE_THAT(expected, Equals(hex::fmt_format(value)));   \
+        REQUIRE_THAT(expected, Equals(hex::naive(value)));        \
+        REQUIRE_THAT(expected, Equals(hex::LUT1(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::LUT2(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::LUT3(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::SWAR(value)));         \
+    } while (false)
+
+#define COMPARE_LZ(value)                                            \
+    do {                                                             \
+        auto expected = hex::snprintf_LZ(value);                     \
+        REQUIRE_THAT(expected, Equals(hex::stringstream_LZ(value))); \
+        REQUIRE_THAT(expected, Equals(hex::to_chars_LZ(value)));     \
+        REQUIRE_THAT(expected, Equals(hex::format_LZ(value)));       \
+        REQUIRE_THAT(expected, Equals(hex::fmt_format_LZ(value)));   \
+        REQUIRE_THAT(expected, Equals(hex::naive_LZ(value)));        \
+        REQUIRE_THAT(expected, Equals(hex::LUT1_LZ(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::LUT2_LZ(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::LUT3_LZ(value)));         \
+        REQUIRE_THAT(expected, Equals(hex::SWAR_LZ(value)));         \
+    } while (false)
+
+inline constexpr auto kCount = 1u << 20;
+
+TEST_CASE("Unit test for std::uint8_t without leading zero")
 {
-    auto compare = [](auto&& first, auto&&... last) {
-        return ((first == last) && ...);
-    };
+    std::uint8_t i { 0 };
 
-    auto success
-        = compare(
-              hex::snprintf(value),
-              hex::stringstream(value),
-              hex::to_chars(value),
-              hex::format(value),
-              hex::fmt_format(value),
-              hex::naive(value),
-              hex::LUT1(value),
-              hex::LUT2(value),
-              hex::LUT3(value),
-              hex::SWAR(value))
-        && compare(
-            hex::snprintf_LZ(value),
-            hex::stringstream_LZ(value),
-            hex::to_chars_LZ(value),
-            hex::format_LZ(value),
-            hex::fmt_format_LZ(value),
-            hex::naive_LZ(value),
-            hex::LUT1_LZ(value),
-            hex::LUT2_LZ(value),
-            hex::LUT3_LZ(value),
-            hex::SWAR_LZ(value));
-
-    if (!success) {
-        fmt::print("Failed on value {}\n", value);
-    }
-
-    return success;
+    do {
+        COMPARE(i);
+    } while (++i != 0);
 }
 
-template <std::unsigned_integral Uint>
-bool Test()
+TEST_CASE("Unit test for std::uint16_t without leading zero")
 {
-    if constexpr (sizeof(Uint) < 4) {
-        Uint i { 0 };
+    std::uint16_t i { 0 };
 
-        do {
-            if (!Validate(i))
-                return false;
-        } while (++i != 0);
-    } else {
-        static constexpr auto kCount = 1u << 20;
-        std::random_device rd;
-        std::mt19937 gen { rd() };
-        std::uniform_int_distribution<Uint> dist;
-
-        for (auto i { 0u }; i < kCount; ++i) {
-            if (!Validate(dist(gen)))
-                return false;
-        }
-    };
-
-    return true;
+    do {
+        COMPARE(i);
+    } while (++i != 0);
 }
 
-int main(int argc, char* argv[])
+TEST_CASE("Unit test for std::uint32_t without leading zero")
 {
-    std::array<bool, 4> enable {};
-    enable.fill(true);
+    std::random_device rd;
+    std::mt19937_64 gen { rd() };
+    std::uniform_int_distribution<std::uint32_t> dist;
 
-    if (argc == 2) {
-        enable[0] = (argv[1] == "1"sv);
-        enable[1] = (argv[1] == "2"sv);
-        enable[2] = (argv[1] == "3"sv);
-        enable[3] = (argv[1] == "4"sv);
+    for (auto i { 0u }; i < kCount; ++i) {
+        auto value = dist(gen);
+        COMPARE(value);
     }
+}
 
-    if (enable[0] && !Test<std::uint8_t>())
-        return -1;
+TEST_CASE("Unit test for std::uint64_t without leading zero")
+{
+    std::random_device rd;
+    std::mt19937_64 gen { rd() };
+    std::uniform_int_distribution<std::uint64_t> dist;
 
-    if (enable[1] && !Test<std::uint16_t>())
-        return -1;
+    for (auto i { 0u }; i < kCount; ++i) {
+        auto value = dist(gen);
+        COMPARE(value);
+    }
+}
 
-    if (enable[2] && !Test<std::uint32_t>())
-        return -1;
+TEST_CASE("Unit test for std::uint8_t with leading zero")
+{
+    std::uint8_t i { 0 };
 
-    if (enable[3] && !Test<std::uint64_t>())
-        return -1;
+    do {
+        COMPARE_LZ(i);
+    } while (++i != 0);
+}
 
-    return 0;
+TEST_CASE("Unit test for std::uint16_t with leading zero")
+{
+    std::uint16_t i { 0 };
+
+    do {
+        COMPARE_LZ(i);
+    } while (++i != 0);
+}
+
+TEST_CASE("Unit test for std::uint32_t with leading zero")
+{
+    std::random_device rd;
+    std::mt19937_64 gen { rd() };
+    std::uniform_int_distribution<std::uint32_t> dist;
+
+    for (auto i { 0u }; i < kCount; ++i) {
+        auto value = dist(gen);
+        COMPARE_LZ(value);
+    }
+}
+
+TEST_CASE("Unit test for std::uint64_t with leading zero")
+{
+    std::random_device rd;
+    std::mt19937_64 gen { rd() };
+    std::uniform_int_distribution<std::uint64_t> dist;
+
+    for (auto i { 0u }; i < kCount; ++i) {
+        auto value = dist(gen);
+        COMPARE_LZ(value);
+    }
 }
