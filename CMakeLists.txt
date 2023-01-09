@@ -12,6 +12,10 @@ option(HEX_BUILD_BENCHMARKS "Build benchmark program" OFF)
 option(HEX_BUILD_TESTS "Build test program" OFF)
 option(HEX_RUN_BENCHMARKS "Run benchmark program after build" OFF)
 
+if(NOT HEX_TEST_FRAMEWORK)
+    set(HEX_TEST_FRAMEWORK doctest)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/MP)
 endif()
